@@ -1,0 +1,12 @@
+{
+    "name": "shirase/yii2-tree-behavior",
+    "type": "yii2-extension",
+    "require": {
+        "php": ">=5.4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "shirase\\tree\\": ""
+        }
+    }
+}

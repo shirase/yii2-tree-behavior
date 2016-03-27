@@ -1,5 +1,5 @@
 <?php
-namespace shirase\sortable;
+namespace shirase\tree;
 
 use yii\base\Behavior;
 use yii\web\HttpException;
@@ -7,7 +7,7 @@ use yii\db\Expression;
 
 /**
  * Class TreeBehavior
- * @package shirase\sortable
+ * @package shirase\tree
  * @property \yii\db\ActiveRecord $owner
  */
 class TreeBehavior extends Behavior {

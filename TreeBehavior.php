@@ -2,6 +2,7 @@
 namespace shirase\tree;
 
 use yii\base\Behavior;
+use yii\db\ActiveRecord;
 use yii\web\HttpException;
 use yii\db\Expression;
 
@@ -18,8 +19,9 @@ class TreeBehavior extends Behavior {
     public function events()
     {
         return [
-            'onBeforeDelete'=>'beforeDelete',
-            'onBeforeSave'=>'beforeSave',
+            ActiveRecord::EVENT_BEFORE_DELETE=>'beforeDelete',
+            ActiveRecord::EVENT_BEFORE_INSERT=>'beforeSave',
+            ActiveRecord::EVENT_BEFORE_INSERT=>'beforeSave',
         ];
     }
 

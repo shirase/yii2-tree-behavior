@@ -57,11 +57,14 @@ class TreeBehavior extends Behavior {
         return $bpath.self::toBase255($path);
     }
 
-    private function updateChildBpath($bpath) {
-        if($this->bpath) {
-            $model = $this->owner;
-            while($this->owner->getDb()->createCommand('UPDATE '.$model::tableName().' SET `'.$this->bpath.'`=CONCAT((SELECT(`'.$this->bpath.'`) FROM (SELECT id, bpath FROM '.$model::tableName().') AS p WHERE t.`'.$this->pid.'=p.id`), LPAD(CHAR(`'.$this->pos.'`), '.self::BPATH_LEN.', CHAR(0))) WHERE `'.$this->bpath.'` LIKE :bpath ORDER BY `'.$this->bpath.'`')->execute([':bpath'=>$bpath.'%'])) {}
+    public function buildChildBPath($bpath='') {
+        if(!$this->bpath || !$this->pid || $this->pos) {
+            throw new HttpException(500, 'Required bpath, pid, pos');
         }
+
+        $model = $this->owner;
+        $this->owner->getDb()->createCommand('UPDATE '.$model::tableName().' SET `'.$this->bpath.'`=:bpath WHERE `'.$this->bpath.'` LIKE :bpath', [':bpath'=>$bpath])->execute();
+        while($this->owner->getDb()->createCommand('UPDATE '.$model::tableName().' AS t SET `'.$this->bpath.'`=CONCAT((SELECT(`'.$this->bpath.'`) FROM (SELECT id, bpath FROM '.$model::tableName().') AS p WHERE t.`'.$this->pid.'=p.id`), LPAD(CHAR(`'.$this->pos.'`), '.self::BPATH_LEN.', CHAR(0))) WHERE `'.$this->bpath.'` LIKE :bpath ORDER BY `'.$this->bpath.'`', [':bpath'=>$bpath.'%'])->execute()) {}
     }
 
     private function maxPos() {
@@ -77,8 +80,10 @@ class TreeBehavior extends Behavior {
         $this->owner->{$this->pid} = $to;
 
         if($this->bpath) {
-            $this->updateChildBpath($this->owner->{$this->bpath});
+            $model = $this->owner;
+            $bpathOld = $this->owner->{$this->bpath};
             $this->owner->{$this->bpath} = $this->makeBpath();
+            $this->owner->getDb()->createCommand('UPDATE '.$model::tableName().' SET `'.$this->bpath.'`=CONCAT(:bpath, RIGHT(`'.$this->bpath.'`, LENGTH(`'.$this->bpath.'`)-LENGTH(:bpathOld))) WHERE `'.$this->bpath.'` LIKE :bpathOld', [':bpath'=>$this->owner->{$this->bpath}, ':bpathOld'=>$bpathOld.'%'])->execute();
             $this->owner->save(false, array($this->pid, $this->pos, $this->bpath));
         } else {
             $this->owner->save(false, array($this->pid, $this->pos));

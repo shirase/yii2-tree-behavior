@@ -24,7 +24,7 @@ class TreeBehavior extends Behavior {
         return [
             ActiveRecord::EVENT_BEFORE_DELETE=>'beforeDelete',
             ActiveRecord::EVENT_BEFORE_INSERT=>'beforeSave',
-            ActiveRecord::EVENT_BEFORE_INSERT=>'beforeSave',
+            ActiveRecord::EVENT_BEFORE_UPDATE=>'beforeSave',
         ];
     }
 
@@ -40,14 +40,14 @@ class TreeBehavior extends Behavior {
         }
 
         if($this->bpath && !$this->owner->{$this->bpath}) {
-            $this->owner->{$this->bpath} = $this->makeBpath();
+            $this->owner->{$this->bpath} = $this->makeBPath();
         }
     }
 
-    private function makeBpath() {
+    private function makeBPath() {
         $bpath = '';
         $parent = $this->owner;
-        $path[] = array($parent->{$this->pos});
+        $path = array($parent->{$this->pos});
         while($parent=$parent->getParent()) {
             if($bpath = $parent->{$this->bpath}) {
                 break;
@@ -57,15 +57,15 @@ class TreeBehavior extends Behavior {
         return $bpath.self::toBase255($path);
     }
 
-    public function buildChildBPath($bpath='') {
-        if(!$this->bpath || !$this->pid || $this->pos) {
+    /*public function buildChildBPath($bpath='') {
+        if(!$this->bpath || !$this->pid || !$this->pos) {
             throw new HttpException(500, 'Required bpath, pid, pos');
         }
 
         $model = $this->owner;
-        $this->owner->getDb()->createCommand('UPDATE '.$model::tableName().' SET `'.$this->bpath.'`=:bpath WHERE `'.$this->bpath.'` LIKE :bpath', [':bpath'=>$bpath])->execute();
-        while($this->owner->getDb()->createCommand('UPDATE '.$model::tableName().' AS t SET `'.$this->bpath.'`=CONCAT((SELECT(`'.$this->bpath.'`) FROM (SELECT id, bpath FROM '.$model::tableName().') AS p WHERE t.`'.$this->pid.'=p.id`), LPAD(CHAR(`'.$this->pos.'`), '.self::BPATH_LEN.', CHAR(0))) WHERE `'.$this->bpath.'` LIKE :bpath ORDER BY `'.$this->bpath.'`', [':bpath'=>$bpath.'%'])->execute()) {}
-    }
+        $this->owner->getDb()->createCommand('UPDATE '.$model::tableName().' SET `'.$this->bpath.'`=CONCAT(:bpath, LPAD(CHAR(`'.$this->pos.'`), '.self::BPATH_LEN.', CHAR(0))) WHERE `'.$this->bpath.'` LIKE :bpath', [':bpath'=>$bpath])->execute();
+        while($this->owner->getDb()->createCommand('UPDATE '.$model::tableName().' AS t SET `'.$this->bpath.'`=CONCAT((SELECT `'.$this->bpath.'` FROM (SELECT * FROM '.$model::tableName().') AS p WHERE p.'.$model::primaryKey()[0].'=t.`'.$this->pid.'`), LPAD(CHAR(`'.$this->pos.'`), '.self::BPATH_LEN.', CHAR(0))) WHERE `'.$this->bpath.'` LIKE :bpath AND pid=0 ORDER BY `'.$this->bpath.'`', [':bpath'=>$bpath.'%'])->execute()) {}
+    }*/
 
     private function maxPos() {
         $model = $this->owner;
@@ -82,7 +82,7 @@ class TreeBehavior extends Behavior {
         if($this->bpath) {
             $model = $this->owner;
             $bpathOld = $this->owner->{$this->bpath};
-            $this->owner->{$this->bpath} = $this->makeBpath();
+            $this->owner->{$this->bpath} = $this->makeBPath();
             $this->owner->getDb()->createCommand('UPDATE '.$model::tableName().' SET `'.$this->bpath.'`=CONCAT(:bpath, RIGHT(`'.$this->bpath.'`, LENGTH(`'.$this->bpath.'`)-LENGTH(:bpathOld))) WHERE `'.$this->bpath.'` LIKE :bpathOld', [':bpath'=>$this->owner->{$this->bpath}, ':bpathOld'=>$bpathOld.'%'])->execute();
             $this->owner->save(false, array($this->pid, $this->pos, $this->bpath));
         } else {
@@ -121,7 +121,7 @@ class TreeBehavior extends Behavior {
         }
 
         if($this->bpath) {
-            $this->owner->{$this->bpath} = $this->makeBpath();
+            $this->owner->{$this->bpath} = $this->makeBPath();
             $this->owner->save(false, array($this->pos, $this->bpath));
         } else {
             $this->owner->save(false, array($this->pos));
@@ -157,7 +157,7 @@ class TreeBehavior extends Behavior {
         }
 
         if($this->bpath) {
-            $this->owner->{$this->bpath} = $this->makeBpath();
+            $this->owner->{$this->bpath} = $this->makeBPath();
             $this->owner->save(false, array($this->pos, $this->bpath));
         } else {
             $this->owner->save(false, array($this->pos));
@@ -178,22 +178,39 @@ class TreeBehavior extends Behavior {
         return true;
     }
 
-    private $_modelpath = array();
     public function getModelByLevel($level) {
         if(!$this->pid) {
             throw new HttpException(500);
         }
 
-        if($this->_modelpath) return $this->_modelpath[$level];
-
+        $path = $this->getPath();
         $model = $this->owner;
-        array_unshift($this->_modelpath, $model);
-        while($model->{$this->pid}) {
-            $model = $model->findOne($model->{$this->pid});
-            array_unshift($this->_modelpath, $model);
+        return $model::findOne($path[$level]);
+    }
+
+    public function getPath() {
+        if(!$this->pid) {
+            throw new HttpException(500);
         }
 
-        return $this->_modelpath[$level];
+        if($this->bpath) {
+            $model = $this->owner;
+            $pos = array();
+            //$bpath = $this->owner->{$this->bpath};
+            $bpath = $model::getDb()->createCommand('SELECT '.$this->bpath.' FROM '.$model::tableName().' WHERE '.$model::primaryKey()[0].'=:id', [':id'=>$this->owner->primaryKey])->queryScalar();
+            $parts = str_split($bpath, self::BPATH_LEN);
+            foreach($parts as $part) {
+                $pos[] = ord(ltrim($part, chr(0)));
+            }
+            return (array)$model::getDb()->createCommand('SELECT '.$model::primaryKey()[0].' FROM '.$model::tableName().' WHERE pos IN("'.implode('","', $pos).'") ORDER BY FIELD(`'.$this->pos.'`, "'.implode('","', $pos).'")')->queryColumn();
+        } else {
+            $parent = $this->owner;
+            $res = array($parent->primaryKey);
+            while($parent=$parent->parant) {
+                array_unshift($res, $parent->primaryKey);
+            }
+            return $res;
+        }
     }
 
     public function getParent() {

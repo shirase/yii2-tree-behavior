@@ -13,11 +13,29 @@ use yii\db\Expression;
  */
 class TreeBehavior extends Behavior {
 
-    public $pid = 'pid';
-    public $bpath = 'bpath';
-    public $pos = 'pos';
+    public $pidAttribute = 'pid';
+    public $bPathAttribute = 'bpath';
+    public $posAttribute = 'pos';
 
     const BPATH_LEN = 4;
+
+    public function attach($owner)
+    {
+        parent::attach($owner);
+
+        /**
+         * @var \yii\db\ActiveRecord $owner
+         */
+        if(!$owner->hasAttribute($this->pidAttribute)) {
+            $this->pidAttribute = null;
+        }
+        if(!$owner->hasAttribute($this->bPathAttribute)) {
+            $this->bPathAttribute = null;
+        }
+        if(!$owner->hasAttribute($this->posAttribute)) {
+            $this->posAttribute = null;
+        }
+    }
 
     public function events()
     {
@@ -29,147 +47,148 @@ class TreeBehavior extends Behavior {
     }
 
     public function beforeDelete($event) {
-        if($this->pid && $this->owner->findOne([$this->pid=>$this->owner->primaryKey])) {
+        if($this->pidAttribute && $this->owner->findOne([$this->pidAttribute=>$this->owner->primaryKey])) {
             $event->isValid = false;
         }
     }
 
     public function beforeSave($event) {
-        if(!$this->owner->{$this->pos}) {
-            $this->owner->{$this->pos} = $this->maxPos()+1;
+        if(!$this->owner->{$this->posAttribute}) {
+            $this->owner->{$this->posAttribute} = $this->maxPos()+1;
         }
 
-        if($this->bpath && !$this->owner->{$this->bpath}) {
-            $this->owner->{$this->bpath} = $this->makeBPath();
+        if($this->bPathAttribute && !$this->owner->{$this->bPathAttribute}) {
+            //$this->owner->{$this->bPathAttribute} = $this->buildBPath();
+            $this->reBuildBPath();
         }
     }
 
-    private function makeBPath() {
+    private function buildBPath() {
         $bpath = '';
         $parent = $this->owner;
-        $path = array($parent->{$this->pos});
+        $path = array($parent->{$this->posAttribute});
         while($parent=$parent->getParent()) {
-            if($bpath = $parent->{$this->bpath}) {
+            if($bpath = $parent->{$this->bPathAttribute}) {
                 break;
             }
-            array_unshift($path, $parent->{$this->pos});
+            array_unshift($path, $parent->{$this->posAttribute});
         }
         return $bpath.self::toBase255($path);
     }
 
-    /*public function buildChildBPath($bpath='') {
-        if(!$this->bpath || !$this->pid || !$this->pos) {
-            throw new HttpException(500, 'Required bpath, pid, pos');
+    private function reBuildBPath() {
+        if(!$this->bPathAttribute || !$this->pidAttribute || !$this->posAttribute) {
+            throw new HttpException(500, 'bpath, pid, pos is required');
         }
 
         $model = $this->owner;
-        $this->owner->getDb()->createCommand('UPDATE '.$model::tableName().' SET `'.$this->bpath.'`=CONCAT(:bpath, LPAD(CHAR(`'.$this->pos.'`), '.self::BPATH_LEN.', CHAR(0))) WHERE `'.$this->bpath.'` LIKE :bpath', [':bpath'=>$bpath])->execute();
-        while($this->owner->getDb()->createCommand('UPDATE '.$model::tableName().' AS t SET `'.$this->bpath.'`=CONCAT((SELECT `'.$this->bpath.'` FROM (SELECT * FROM '.$model::tableName().') AS p WHERE p.'.$model::primaryKey()[0].'=t.`'.$this->pid.'`), LPAD(CHAR(`'.$this->pos.'`), '.self::BPATH_LEN.', CHAR(0))) WHERE `'.$this->bpath.'` LIKE :bpath AND pid=0 ORDER BY `'.$this->bpath.'`', [':bpath'=>$bpath.'%'])->execute()) {}
-    }*/
+        $this->owner->getDb()->createCommand('UPDATE '.$model::tableName().' SET `'.$this->bPathAttribute.'`=NULL')->execute();
+        while($this->owner->getDb()->createCommand('UPDATE '.$model::tableName().' AS t SET `'.$this->bPathAttribute.'`=CONCAT_WS("", (SELECT `'.$this->bPathAttribute.'` FROM (SELECT '.$model::primaryKey()[0].', '.$this->bPathAttribute.' FROM '.$model::tableName().') AS p WHERE p.'.$model::primaryKey()[0].'=t.`'.$this->pidAttribute.'`), LPAD(CHAR(`'.$this->posAttribute.'`), '.self::BPATH_LEN.', CHAR(0))) ORDER BY `'.$this->posAttribute.'`;')->execute()) {}
+    }
 
     private function maxPos() {
         $model = $this->owner;
-        return $model->getDb()->createCommand('SELECT MAX(`'.$this->pos.'`) FROM '.$model::tableName())->queryScalar();
+        return $model->getDb()->createCommand('SELECT MAX(`'.$this->posAttribute.'`) FROM '.$model::tableName())->queryScalar();
     }
 
     public function moveTo($to) {
-        if(!$this->pos || !$this->pid) {
+        if(!$this->posAttribute || !$this->pidAttribute) {
             throw new HttpException(500);
         }
-        $this->owner->{$this->pos} = $this->maxPos()+1;
-        $this->owner->{$this->pid} = $to;
+        $this->owner->{$this->posAttribute} = $this->maxPos()+1;
+        $this->owner->{$this->pidAttribute} = $to;
 
-        if($this->bpath) {
+        if($this->bPathAttribute) {
             $model = $this->owner;
-            $bpathOld = $this->owner->{$this->bpath};
-            $this->owner->{$this->bpath} = $this->makeBPath();
-            $this->owner->getDb()->createCommand('UPDATE '.$model::tableName().' SET `'.$this->bpath.'`=CONCAT(:bpath, RIGHT(`'.$this->bpath.'`, LENGTH(`'.$this->bpath.'`)-LENGTH(:bpathOld))) WHERE `'.$this->bpath.'` LIKE :bpathOld', [':bpath'=>$this->owner->{$this->bpath}, ':bpathOld'=>$bpathOld.'%'])->execute();
-            $this->owner->save(false, array($this->pid, $this->pos, $this->bpath));
+            $bpathOld = $this->owner->{$this->bPathAttribute};
+            $this->owner->{$this->bPathAttribute} = $this->makeBPath();
+            $this->owner->getDb()->createCommand('UPDATE '.$model::tableName().' SET `'.$this->bPathAttribute.'`=CONCAT(:bpath, RIGHT(`'.$this->bPathAttribute.'`, LENGTH(`'.$this->bPathAttribute.'`)-LENGTH(:bpathOld))) WHERE `'.$this->bPathAttribute.'` LIKE :bpathOld', [':bpath'=>$this->owner->{$this->bPathAttribute}, ':bpathOld'=>$bpathOld.'%'])->execute();
+            $this->owner->save(false, array($this->pidAttribute, $this->posAttribute, $this->bPathAttribute));
         } else {
-            $this->owner->save(false, array($this->pid, $this->pos));
+            $this->owner->save(false, array($this->pidAttribute, $this->posAttribute));
         }
 
         $this->owner->refresh();
     }
 
     public function insertAfter($id) {
-        if(!$this->pos) {
+        if(!$this->posAttribute) {
             throw new HttpException(500);
         }
 
         $target = $this->owner->findOne($id);
 
-        if($this->pid && $target->{$this->pid} != $this->owner->{$this->pid}) $this->moveTo($target->{$this->pid});
+        if($this->pidAttribute && $target->{$this->pidAttribute} != $this->owner->{$this->pidAttribute}) $this->moveTo($target->{$this->pidAttribute});
 
-        $pos = $target->{$this->pos};
-        if($this->owner->findOne([$this->pos=>$pos+1])) {
-            if($pos<$this->owner->{$this->pos}) {
-                $this->owner->updateAll(array($this->pos=>new Expression('`'.$this->pos.'`+1')), $this->pos.'>:pos1 AND '.$this->pos.'<:pos2', ['pos1'=>$pos, 'pos2'=>$this->owner->{$this->pos}]);
-                if($this->bpath) {
-                    $this->owner->updateAll(array($this->bpath=>new Expression('CONCAT(LEFT(`'.$this->bpath.'`, LENGTH(`'.$this->bpath.'`)-'.self::BPATH_LEN.'), LPAD(CHAR(`'.$this->pos.'`), '.self::BPATH_LEN.', CHAR(0)))')), $this->pos.'>:pos1 AND '.$this->pos.'<:pos2', ['pos1'=>$pos, 'pos2'=>$this->owner->{$this->pos}]);
+        $pos = $target->{$this->posAttribute};
+        if($this->owner->findOne([$this->posAttribute=>$pos+1])) {
+            if($pos<$this->owner->{$this->posAttribute}) {
+                $this->owner->updateAll(array($this->posAttribute=>new Expression('`'.$this->posAttribute.'`+1')), $this->posAttribute.'>:pos1 AND '.$this->posAttribute.'<:pos2', ['pos1'=>$pos, 'pos2'=>$this->owner->{$this->posAttribute}]);
+                if($this->bPathAttribute) {
+                    $this->owner->updateAll(array($this->bPathAttribute=>new Expression('CONCAT(LEFT(`'.$this->bPathAttribute.'`, LENGTH(`'.$this->bPathAttribute.'`)-'.self::BPATH_LEN.'), LPAD(CHAR(`'.$this->posAttribute.'`), '.self::BPATH_LEN.', CHAR(0)))')), $this->posAttribute.'>:pos1 AND '.$this->posAttribute.'<:pos2', ['pos1'=>$pos, 'pos2'=>$this->owner->{$this->posAttribute}]);
                 }
-                $this->owner->{$this->pos} = $pos+1;
+                $this->owner->{$this->posAttribute} = $pos+1;
             } else {
-                $this->owner->updateAll(array($this->pos=>new Expression('`'.$this->pos.'`-1')), $this->pos.'>:pos1 AND '.$this->pos.'<=:pos2', ['pos1'=>$this->owner->{$this->pos}, 'pos2'=>$pos]);
-                if($this->bpath) {
-                    $this->owner->updateAll(array($this->bpath=>new Expression('CONCAT(LEFT(`'.$this->bpath.'`, LENGTH(`'.$this->bpath.'`)-'.self::BPATH_LEN.'), LPAD(CHAR(`'.$this->pos.'`), '.self::BPATH_LEN.', CHAR(0)))')), $this->pos.'>:pos1 AND '.$this->pos.'<=:pos2', ['pos1'=>$this->owner->{$this->pos}, 'pos2'=>$pos]);
+                $this->owner->updateAll(array($this->posAttribute=>new Expression('`'.$this->posAttribute.'`-1')), $this->posAttribute.'>:pos1 AND '.$this->posAttribute.'<=:pos2', ['pos1'=>$this->owner->{$this->posAttribute}, 'pos2'=>$pos]);
+                if($this->bPathAttribute) {
+                    $this->owner->updateAll(array($this->bPathAttribute=>new Expression('CONCAT(LEFT(`'.$this->bPathAttribute.'`, LENGTH(`'.$this->bPathAttribute.'`)-'.self::BPATH_LEN.'), LPAD(CHAR(`'.$this->posAttribute.'`), '.self::BPATH_LEN.', CHAR(0)))')), $this->posAttribute.'>:pos1 AND '.$this->posAttribute.'<=:pos2', ['pos1'=>$this->owner->{$this->posAttribute}, 'pos2'=>$pos]);
                 }
-                $this->owner->{$this->pos} = $pos;
+                $this->owner->{$this->posAttribute} = $pos;
             }
         } else {
-            $this->owner->{$this->pos} = $pos+1;
+            $this->owner->{$this->posAttribute} = $pos+1;
         }
 
-        if($this->bpath) {
-            $this->owner->{$this->bpath} = $this->makeBPath();
-            $this->owner->save(false, array($this->pos, $this->bpath));
+        if($this->bPathAttribute) {
+            $this->owner->{$this->bPathAttribute} = $this->makeBPath();
+            $this->owner->save(false, array($this->posAttribute, $this->bPathAttribute));
         } else {
-            $this->owner->save(false, array($this->pos));
+            $this->owner->save(false, array($this->posAttribute));
         }
     }
 
     public function insertBefore($id) {
-        if(!$this->pos) {
+        if(!$this->posAttribute) {
             throw new HttpException(500);
         }
 
         $target = $this->owner->findOne($id);
 
-        if($this->pid && $target->{$this->pid} != $this->owner->{$this->pid}) $this->moveTo($target->{$this->pid});
+        if($this->pidAttribute && $target->{$this->pidAttribute} != $this->owner->{$this->pidAttribute}) $this->moveTo($target->{$this->pidAttribute});
 
-        $pos = $target->{$this->pos};
-        if($this->owner->find([$this->pos=>$pos-1]) || $pos<=1) {
-            if($pos<$this->owner->{$this->pos}) {
-                $this->owner->updateAll(array($this->pos=>new Expression('`'.$this->pos.'`+1')), $this->pos.'>=:pos1 AND '.$this->pos.'<:pos2', ['pos1'=>$pos, 'pos2'=>$this->owner->{$this->pos}]);
-                if($this->bpath) {
-                    $this->owner->updateAll(array($this->bpath=>new Expression('CONCAT(LEFT(`'.$this->bpath.'`, LENGTH(`'.$this->bpath.'`)-'.self::BPATH_LEN.'), LPAD(CHAR(`'.$this->pos.'`), '.self::BPATH_LEN.', CHAR(0)))')), $this->pos.'>=:pos1 AND '.$this->pos.'<:pos2', ['pos1'=>$pos, 'pos2'=>$this->owner->{$this->pos}]);
+        $pos = $target->{$this->posAttribute};
+        if($this->owner->find([$this->posAttribute=>$pos-1]) || $pos<=1) {
+            if($pos<$this->owner->{$this->posAttribute}) {
+                $this->owner->updateAll(array($this->posAttribute=>new Expression('`'.$this->posAttribute.'`+1')), $this->posAttribute.'>=:pos1 AND '.$this->posAttribute.'<:pos2', ['pos1'=>$pos, 'pos2'=>$this->owner->{$this->posAttribute}]);
+                if($this->bPathAttribute) {
+                    $this->owner->updateAll(array($this->bPathAttribute=>new Expression('CONCAT(LEFT(`'.$this->bPathAttribute.'`, LENGTH(`'.$this->bPathAttribute.'`)-'.self::BPATH_LEN.'), LPAD(CHAR(`'.$this->posAttribute.'`), '.self::BPATH_LEN.', CHAR(0)))')), $this->posAttribute.'>=:pos1 AND '.$this->posAttribute.'<:pos2', ['pos1'=>$pos, 'pos2'=>$this->owner->{$this->posAttribute}]);
                 }
-                $this->owner->{$this->pos} = $pos;
+                $this->owner->{$this->posAttribute} = $pos;
             } else {
-                $this->owner->updateAll(array($this->pos=>new Expression('`'.$this->pos.'`-1')), $this->pos.'>:pos1 AND '.$this->pos.'<:pos2', ['pos1'=>$this->owner->{$this->pos}, 'pos2'=>$pos]);
-                if($this->bpath) {
-                    $this->owner->updateAll(array($this->bpath=>new Expression('CONCAT(LEFT(`'.$this->bpath.'`, LENGTH(`'.$this->bpath.'`)-'.self::BPATH_LEN.'), LPAD(CHAR(`'.$this->pos.'`), '.self::BPATH_LEN.', CHAR(0)))')), $this->pos.'>:pos1 AND '.$this->pos.'<:pos2', ['pos1'=>$this->owner->{$this->pos}, 'pos2'=>$pos]);
+                $this->owner->updateAll(array($this->posAttribute=>new Expression('`'.$this->posAttribute.'`-1')), $this->posAttribute.'>:pos1 AND '.$this->posAttribute.'<:pos2', ['pos1'=>$this->owner->{$this->posAttribute}, 'pos2'=>$pos]);
+                if($this->bPathAttribute) {
+                    $this->owner->updateAll(array($this->bPathAttribute=>new Expression('CONCAT(LEFT(`'.$this->bPathAttribute.'`, LENGTH(`'.$this->bPathAttribute.'`)-'.self::BPATH_LEN.'), LPAD(CHAR(`'.$this->posAttribute.'`), '.self::BPATH_LEN.', CHAR(0)))')), $this->posAttribute.'>:pos1 AND '.$this->posAttribute.'<:pos2', ['pos1'=>$this->owner->{$this->posAttribute}, 'pos2'=>$pos]);
                 }
-                $this->owner->{$this->pos} = $pos-1;
+                $this->owner->{$this->posAttribute} = $pos-1;
             }
         } else {
-            $this->owner->{$this->pos} = $pos-1;
+            $this->owner->{$this->posAttribute} = $pos-1;
         }
 
-        if($this->bpath) {
-            $this->owner->{$this->bpath} = $this->makeBPath();
-            $this->owner->save(false, array($this->pos, $this->bpath));
+        if($this->bPathAttribute) {
+            $this->owner->{$this->bPathAttribute} = $this->makeBPath();
+            $this->owner->save(false, array($this->posAttribute, $this->bPathAttribute));
         } else {
-            $this->owner->save(false, array($this->pos));
+            $this->owner->save(false, array($this->posAttribute));
         }
     }
 
     public function deleteRecursive() {
-        if(!$this->pid) {
+        if(!$this->pidAttribute) {
             throw new HttpException(500);
         }
 
-        if($rows = $this->owner->findAll([$this->pid=>$this->owner->{$this->owner->primaryKey}])) {
+        if($rows = $this->owner->findAll([$this->pidAttribute=>$this->owner->{$this->owner->primaryKey}])) {
             foreach($rows as $row) {
                 if(!$row->deleteRecursive()) return false;
             }
@@ -178,8 +197,8 @@ class TreeBehavior extends Behavior {
         return true;
     }
 
-    public function getModelByLevel($level) {
-        if(!$this->pid) {
+    public function getNParent($level) {
+        if(!$this->pidAttribute) {
             throw new HttpException(500);
         }
 
@@ -189,20 +208,19 @@ class TreeBehavior extends Behavior {
     }
 
     public function getPath() {
-        if(!$this->pid) {
+        if(!$this->pidAttribute) {
             throw new HttpException(500);
         }
 
-        if($this->bpath) {
+        if($this->bPathAttribute) {
             $model = $this->owner;
             $pos = array();
-            //$bpath = $this->owner->{$this->bpath};
-            $bpath = $model::getDb()->createCommand('SELECT '.$this->bpath.' FROM '.$model::tableName().' WHERE '.$model::primaryKey()[0].'=:id', [':id'=>$this->owner->primaryKey])->queryScalar();
+            $bpath = $this->owner->{$this->bPathAttribute};
             $parts = str_split($bpath, self::BPATH_LEN);
             foreach($parts as $part) {
                 $pos[] = ord(ltrim($part, chr(0)));
             }
-            return (array)$model::getDb()->createCommand('SELECT '.$model::primaryKey()[0].' FROM '.$model::tableName().' WHERE pos IN("'.implode('","', $pos).'") ORDER BY FIELD(`'.$this->pos.'`, "'.implode('","', $pos).'")')->queryColumn();
+            return (array)$model::getDb()->createCommand('SELECT '.$model::primaryKey()[0].' FROM '.$model::tableName().' WHERE pos IN("'.implode('","', $pos).'") ORDER BY FIELD(`'.$this->posAttribute.'`, "'.implode('","', $pos).'")')->queryColumn();
         } else {
             $parent = $this->owner;
             $res = array($parent->primaryKey);
@@ -214,27 +232,27 @@ class TreeBehavior extends Behavior {
     }
 
     public function getParent() {
-        if(!$this->pid) {
+        if(!$this->pidAttribute) {
             throw new HttpException(500);
         }
         $model = $this->owner;
-        return $model->findOne($model->{$this->pid});
+        return $model->findOne($model->{$this->pidAttribute});
     }
 
     public function getPrev() {
-        if(!$this->pos) {
+        if(!$this->posAttribute) {
             throw new HttpException(500);
         }
         $model = $this->owner;
-        return $model->find()->where(['<', $this->pos, $model->{$this->pos}])->orderBy($this->pos.' DESC')->one();
+        return $model->find()->where(['<', $this->posAttribute, $model->{$this->posAttribute}])->orderBy($this->posAttribute.' DESC')->one();
     }
 
     public function getNext() {
-        if(!$this->pos) {
+        if(!$this->posAttribute) {
             throw new HttpException(500);
         }
         $model = $this->owner;
-        return $model->find()->where(['>', $this->pos, $model->{$this->pos}])->orderBy($this->pos.' ASC')->one();
+        return $model->find()->where(['>', $this->posAttribute, $model->{$this->posAttribute}])->orderBy($this->posAttribute.' ASC')->one();
     }
 
     private static function toBase255($numbers)

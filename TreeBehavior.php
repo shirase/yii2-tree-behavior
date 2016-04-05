@@ -58,8 +58,11 @@ class TreeBehavior extends Behavior {
         }
 
         if($this->bPathAttribute && !$this->owner->{$this->bPathAttribute}) {
-            //$this->owner->{$this->bPathAttribute} = $this->buildBPath();
-            $this->reBuildBPath();
+            if($this->owner->isNewRecord) {
+                $this->owner->{$this->bPathAttribute} = $this->buildBPath();
+            } else {
+                $this->reBuildBPath();
+            }
         }
     }
 

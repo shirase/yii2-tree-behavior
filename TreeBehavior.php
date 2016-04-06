@@ -79,7 +79,7 @@ class TreeBehavior extends Behavior {
         return $bpath.self::toBase255($path);
     }
 
-    private function reBuildBPath() {
+    public function reBuildBPath() {
         if(!$this->bPathAttribute || !$this->pidAttribute || !$this->posAttribute) {
             throw new HttpException(500, 'bpath, pid, pos is required');
         }

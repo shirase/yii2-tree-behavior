@@ -104,7 +104,7 @@ class TreeBehavior extends Behavior {
         if($this->bPathAttribute) {
             $model = $this->owner;
             $bpathOld = $this->owner->{$this->bPathAttribute};
-            $this->owner->{$this->bPathAttribute} = $this->makeBPath();
+            $this->owner->{$this->bPathAttribute} = $this->buildBPath();
             $this->owner->getDb()->createCommand('UPDATE '.$model::tableName().' SET `'.$this->bPathAttribute.'`=CONCAT(:bpath, RIGHT(`'.$this->bPathAttribute.'`, LENGTH(`'.$this->bPathAttribute.'`)-LENGTH(:bpathOld))) WHERE `'.$this->bPathAttribute.'` LIKE :bpathOld', [':bpath'=>$this->owner->{$this->bPathAttribute}, ':bpathOld'=>$bpathOld.'%'])->execute();
             $this->owner->save(false, array($this->pidAttribute, $this->posAttribute, $this->bPathAttribute));
         } else {
@@ -143,7 +143,7 @@ class TreeBehavior extends Behavior {
         }
 
         if($this->bPathAttribute) {
-            $this->owner->{$this->bPathAttribute} = $this->makeBPath();
+            $this->owner->{$this->bPathAttribute} = $this->buildBPath();
             $this->owner->save(false, array($this->posAttribute, $this->bPathAttribute));
         } else {
             $this->owner->save(false, array($this->posAttribute));
@@ -179,7 +179,7 @@ class TreeBehavior extends Behavior {
         }
 
         if($this->bPathAttribute) {
-            $this->owner->{$this->bPathAttribute} = $this->makeBPath();
+            $this->owner->{$this->bPathAttribute} = $this->buildBPath();
             $this->owner->save(false, array($this->posAttribute, $this->bPathAttribute));
         } else {
             $this->owner->save(false, array($this->posAttribute));

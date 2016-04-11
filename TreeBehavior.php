@@ -98,6 +98,16 @@ class TreeBehavior extends Behavior {
         if(!$this->posAttribute || !$this->pidAttribute) {
             throw new HttpException(500);
         }
+
+        $transaction = $this->owner->getDb()->beginTransaction();
+        $this->moveToInner($to);
+        $transaction->commit();
+    }
+
+    private function moveToInner($to) {
+        if(!$this->posAttribute || !$this->pidAttribute) {
+            throw new HttpException(500);
+        }
         $this->owner->{$this->posAttribute} = $this->maxPos()+1;
         $this->owner->{$this->pidAttribute} = $to;
 
@@ -119,12 +129,16 @@ class TreeBehavior extends Behavior {
             throw new HttpException(500);
         }
 
+        $transaction = $this->owner->getDb()->beginTransaction();
+
         $target = $this->owner->findOne($id);
 
-        if($this->pidAttribute && $target->{$this->pidAttribute} != $this->owner->{$this->pidAttribute}) $this->moveTo($target->{$this->pidAttribute});
+        if($this->pidAttribute && $target->{$this->pidAttribute} != $this->owner->{$this->pidAttribute}) $this->moveToInner($target->{$this->pidAttribute});
 
         $pos = $target->{$this->posAttribute};
         if($this->owner->findOne([$this->posAttribute=>$pos+1])) {
+            $this->owner->{$this->posAttribute} = null;
+            $this->owner->save(false, [$this->posAttribute]);
             if($pos<$this->owner->{$this->posAttribute}) {
                 $this->owner->updateAll(array($this->posAttribute=>new Expression('`'.$this->posAttribute.'`+1')), $this->posAttribute.'>:pos1 AND '.$this->posAttribute.'<:pos2', ['pos1'=>$pos, 'pos2'=>$this->owner->{$this->posAttribute}]);
                 if($this->bPathAttribute) {
@@ -148,6 +162,8 @@ class TreeBehavior extends Behavior {
         } else {
             $this->owner->save(false, array($this->posAttribute));
         }
+
+        $transaction->commit();
     }
 
     public function insertBefore($id) {
@@ -155,12 +171,16 @@ class TreeBehavior extends Behavior {
             throw new HttpException(500);
         }
 
+        $transaction = $this->owner->getDb()->beginTransaction();
+
         $target = $this->owner->findOne($id);
 
-        if($this->pidAttribute && $target->{$this->pidAttribute} != $this->owner->{$this->pidAttribute}) $this->moveTo($target->{$this->pidAttribute});
+        if($this->pidAttribute && $target->{$this->pidAttribute} != $this->owner->{$this->pidAttribute}) $this->moveToInner($target->{$this->pidAttribute});
 
         $pos = $target->{$this->posAttribute};
-        if($this->owner->find([$this->posAttribute=>$pos-1]) || $pos<=1) {
+        if($this->owner->findOne([$this->posAttribute=>$pos-1]) || $pos<=1) {
+            $this->owner->{$this->posAttribute} = null;
+            $this->owner->save(false, [$this->posAttribute]);
             if($pos<$this->owner->{$this->posAttribute}) {
                 $this->owner->updateAll(array($this->posAttribute=>new Expression('`'.$this->posAttribute.'`+1')), $this->posAttribute.'>=:pos1 AND '.$this->posAttribute.'<:pos2', ['pos1'=>$pos, 'pos2'=>$this->owner->{$this->posAttribute}]);
                 if($this->bPathAttribute) {
@@ -184,6 +204,8 @@ class TreeBehavior extends Behavior {
         } else {
             $this->owner->save(false, array($this->posAttribute));
         }
+
+        $transaction->commit();
     }
 
     public function deleteRecursive() {

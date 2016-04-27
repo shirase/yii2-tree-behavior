@@ -1,5 +1,5 @@
 {
-    "name": "shirase/yii2-tree-behavior",
+    "name": "shirase55/yii2-tree-behavior",
     "type": "yii2-extension",
     "require": {
         "php": ">=5.4.0"

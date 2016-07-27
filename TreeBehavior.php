@@ -35,6 +35,10 @@ class TreeBehavior extends Behavior {
         if(!$owner->hasAttribute($this->posAttribute)) {
             $this->posAttribute = null;
         }
+
+        if($this->bPathAttribute && !$this->posAttribute) {
+            throw new HttpException(500);
+        }
     }
 
     public function events()

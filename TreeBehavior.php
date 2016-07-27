@@ -249,7 +249,7 @@ class TreeBehavior extends Behavior {
         } else {
             $parent = $this->owner;
             $res = array($parent->primaryKey);
-            while($parent=$parent->parant) {
+            while($parent=$parent->parent) {
                 array_unshift($res, $parent->primaryKey);
             }
             return $res;

@@ -284,7 +284,7 @@ class TreeBehavior extends Behavior {
         return $model->find()->where(['>', $this->posAttribute, $model->{$this->posAttribute}])->orderBy($this->posAttribute.' ASC')->one();
     }
 
-    private static function toBase255($numbers)
+    public static function toBase255($numbers)
     {
         $c0 = chr(0);
         $toLen = 255;

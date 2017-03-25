@@ -120,7 +120,6 @@ CREATE TABLE IF NOT EXISTS `items` (
     }
 
     public function testParent() {
-        $this->assertEquals(TreeBehavior::toBase255([1, 4, 5]), Item::findOne(5)->bpath);
         $model = Item::findOne(4);
         $model->insertBefore(2);
         $this->assertEquals(2, Item::findOne($model->id)->pos);

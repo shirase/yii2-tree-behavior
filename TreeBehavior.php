@@ -141,18 +141,25 @@ class TreeBehavior extends Behavior {
 
         $pos = $target->{$this->posAttribute};
         if($this->owner->findOne([$this->posAttribute=>$pos+1])) {
-            $this->owner->{$this->posAttribute} = null;
-            $this->owner->save(false, [$this->posAttribute]);
-            if($pos<$this->owner->{$this->posAttribute}) {
-                $this->owner->updateAll(array($this->posAttribute=>new Expression('`'.$this->posAttribute.'`+1')), $this->posAttribute.'>:pos1 AND '.$this->posAttribute.'<:pos2', ['pos1'=>$pos, 'pos2'=>$this->owner->{$this->posAttribute}]);
+            $currentPos = $this->owner->{$this->posAttribute};
+            if($this->bPathAttribute) {
+                $this->owner->{$this->posAttribute} = null;
+                $this->owner->{$this->bPathAttribute} = null;
+                $this->owner->save(false, [$this->posAttribute, $this->bPathAttribute]);
+            } else {
+                $this->owner->{$this->posAttribute} = null;
+                $this->owner->save(false, [$this->posAttribute]);
+            }
+            if($pos<$currentPos) {
+                $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`+1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<:pos2 ORDER BY `{$this->posAttribute}` DESC", ['pos1'=>$pos, 'pos2'=>$currentPos])->execute();
                 if($this->bPathAttribute) {
-                    $this->owner->updateAll(array($this->bPathAttribute=>new Expression('CONCAT(LEFT(`'.$this->bPathAttribute.'`, LENGTH(`'.$this->bPathAttribute.'`)-'.self::BPATH_LEN.'), LPAD(CHAR(`'.$this->posAttribute.'`), '.self::BPATH_LEN.', CHAR(0)))')), $this->posAttribute.'>:pos1 AND '.$this->posAttribute.'<:pos2', ['pos1'=>$pos, 'pos2'=>$this->owner->{$this->posAttribute}]);
+                    $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->bPathAttribute}`=CONCAT(LEFT(`{$this->bPathAttribute}`, LENGTH(`{$this->bPathAttribute}`)-".self::BPATH_LEN."), LPAD(CHAR(`{$this->posAttribute}`), ".self::BPATH_LEN.", CHAR(0))) WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<=:pos2 ORDER BY `{$this->posAttribute}` DESC", ['pos1'=>$pos, 'pos2'=>$currentPos])->execute();
                 }
                 $this->owner->{$this->posAttribute} = $pos+1;
             } else {
-                $this->owner->updateAll(array($this->posAttribute=>new Expression('`'.$this->posAttribute.'`-1')), $this->posAttribute.'>:pos1 AND '.$this->posAttribute.'<=:pos2', ['pos1'=>$this->owner->{$this->posAttribute}, 'pos2'=>$pos]);
+                $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`-1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<=:pos2 ORDER BY `{$this->posAttribute}` ASC", ['pos1'=>$currentPos, 'pos2'=>$pos])->execute();
                 if($this->bPathAttribute) {
-                    $this->owner->updateAll(array($this->bPathAttribute=>new Expression('CONCAT(LEFT(`'.$this->bPathAttribute.'`, LENGTH(`'.$this->bPathAttribute.'`)-'.self::BPATH_LEN.'), LPAD(CHAR(`'.$this->posAttribute.'`), '.self::BPATH_LEN.', CHAR(0)))')), $this->posAttribute.'>:pos1 AND '.$this->posAttribute.'<=:pos2', ['pos1'=>$this->owner->{$this->posAttribute}, 'pos2'=>$pos]);
+                    $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->bPathAttribute}`=CONCAT(LEFT(`{$this->bPathAttribute}`, LENGTH(`{$this->bPathAttribute}`)-".self::BPATH_LEN."), LPAD(CHAR(`{$this->posAttribute}`), ".self::BPATH_LEN.", CHAR(0))) WHERE `{$this->posAttribute}`>=:pos1 AND `{$this->posAttribute}`<:pos2 ORDER BY `{$this->posAttribute}` ASC", ['pos1'=>$currentPos, 'pos2'=>$pos])->execute();
                 }
                 $this->owner->{$this->posAttribute} = $pos;
             }
@@ -183,18 +190,25 @@ class TreeBehavior extends Behavior {
 
         $pos = $target->{$this->posAttribute};
         if($this->owner->findOne([$this->posAttribute=>$pos-1]) || $pos<=1) {
-            $this->owner->{$this->posAttribute} = null;
-            $this->owner->save(false, [$this->posAttribute]);
-            if($pos<$this->owner->{$this->posAttribute}) {
-                $this->owner->updateAll(array($this->posAttribute=>new Expression('`'.$this->posAttribute.'`+1')), $this->posAttribute.'>=:pos1 AND '.$this->posAttribute.'<:pos2', ['pos1'=>$pos, 'pos2'=>$this->owner->{$this->posAttribute}]);
+            $currentPos = $this->owner->{$this->posAttribute};
+            if($this->bPathAttribute) {
+                $this->owner->{$this->posAttribute} = null;
+                $this->owner->{$this->bPathAttribute} = null;
+                $this->owner->save(false, [$this->posAttribute, $this->bPathAttribute]);
+            } else {
+                $this->owner->{$this->posAttribute} = null;
+                $this->owner->save(false, [$this->posAttribute]);
+            }
+            if($pos<$currentPos) {
+                $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`+1 WHERE `{$this->posAttribute}`>=:pos1 AND `{$this->posAttribute}`<:pos2 ORDER BY `{$this->posAttribute}` DESC", ['pos1'=>$pos, 'pos2'=>$currentPos])->execute();
                 if($this->bPathAttribute) {
-                    $this->owner->updateAll(array($this->bPathAttribute=>new Expression('CONCAT(LEFT(`'.$this->bPathAttribute.'`, LENGTH(`'.$this->bPathAttribute.'`)-'.self::BPATH_LEN.'), LPAD(CHAR(`'.$this->posAttribute.'`), '.self::BPATH_LEN.', CHAR(0)))')), $this->posAttribute.'>=:pos1 AND '.$this->posAttribute.'<:pos2', ['pos1'=>$pos, 'pos2'=>$this->owner->{$this->posAttribute}]);
+                    $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->bPathAttribute}`=CONCAT(LEFT(`{$this->bPathAttribute}`, LENGTH(`{$this->bPathAttribute}`)-".self::BPATH_LEN."), LPAD(CHAR(`{$this->posAttribute}`), ".self::BPATH_LEN.", CHAR(0))) WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<=:pos2 ORDER BY `{$this->posAttribute}` DESC", ['pos1'=>$pos, 'pos2'=>$currentPos])->execute();
                 }
                 $this->owner->{$this->posAttribute} = $pos;
             } else {
-                $this->owner->updateAll(array($this->posAttribute=>new Expression('`'.$this->posAttribute.'`-1')), $this->posAttribute.'>:pos1 AND '.$this->posAttribute.'<:pos2', ['pos1'=>$this->owner->{$this->posAttribute}, 'pos2'=>$pos]);
+                $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`-1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<:pos2 ORDER BY `{$this->posAttribute}` ASC", ['pos1'=>$currentPos, 'pos2'=>$pos])->execute();
                 if($this->bPathAttribute) {
-                    $this->owner->updateAll(array($this->bPathAttribute=>new Expression('CONCAT(LEFT(`'.$this->bPathAttribute.'`, LENGTH(`'.$this->bPathAttribute.'`)-'.self::BPATH_LEN.'), LPAD(CHAR(`'.$this->posAttribute.'`), '.self::BPATH_LEN.', CHAR(0)))')), $this->posAttribute.'>:pos1 AND '.$this->posAttribute.'<:pos2', ['pos1'=>$this->owner->{$this->posAttribute}, 'pos2'=>$pos]);
+                    $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->bPathAttribute}`=CONCAT(LEFT(`{$this->bPathAttribute}`, LENGTH(`{$this->bPathAttribute}`)-".self::BPATH_LEN."), LPAD(CHAR(`{$this->posAttribute}`), ".self::BPATH_LEN.", CHAR(0))) WHERE `{$this->posAttribute}`>=:pos1 AND `{$this->posAttribute}`<:pos2 ORDER BY `{$this->posAttribute}` ASC", ['pos1'=>$currentPos, 'pos2'=>$pos])->execute();
                 }
                 $this->owner->{$this->posAttribute} = $pos-1;
             }
@@ -311,4 +325,4 @@ class TreeBehavior extends Behavior {
 
         return implode('', $res);
     }
-} 
+}

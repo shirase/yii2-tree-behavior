@@ -2,6 +2,7 @@
 
 use PHPUnit\Framework\TestCase;
 use \tests\models\Item;
+use \shirase\tree\TreeBehavior;
 
 class TreeTest extends TestCase
 {
@@ -46,28 +47,35 @@ CREATE TABLE IF NOT EXISTS `items` (
                     'pid'=>0,
                     'pos'=>1,
                     'name'=>'root',
-                    'bpath'=>\shirase\tree\TreeBehavior::toBase255([1]),
+                    'bpath'=>TreeBehavior::toBase255([1]),
                 ],
                 [
                     'id'=>2,
                     'pid'=>1,
                     'pos'=>2,
                     'name'=>'test-1',
-                    'bpath'=>\shirase\tree\TreeBehavior::toBase255([1, 2]),
+                    'bpath'=>TreeBehavior::toBase255([1, 2]),
                 ],
                 [
                     'id'=>3,
                     'pid'=>1,
                     'pos'=>3,
                     'name'=>'test-2',
-                    'bpath'=>\shirase\tree\TreeBehavior::toBase255([1, 3]),
+                    'bpath'=>TreeBehavior::toBase255([1, 3]),
                 ],
                 [
                     'id'=>4,
                     'pid'=>1,
                     'pos'=>4,
                     'name'=>'test-3',
-                    'bpath'=>\shirase\tree\TreeBehavior::toBase255([1, 4]),
+                    'bpath'=>TreeBehavior::toBase255([1, 4]),
+                ],
+                [
+                    'id'=>5,
+                    'pid'=>4,
+                    'pos'=>5,
+                    'name'=>'test-3-1',
+                    'bpath'=>TreeBehavior::toBase255([1, 4, 5]),
                 ],
             ],
         ]);
@@ -77,23 +85,45 @@ CREATE TABLE IF NOT EXISTS `items` (
         $model = Item::findOne(4);
         $model->insertBefore(2);
         $this->assertEquals(2, Item::findOne($model->id)->pos);
+        $this->assertEquals(TreeBehavior::toBase255([1, 2]), Item::findOne($model->id)->bpath);
     }
 
     public function testInsertBeforeLast() {
         $model = Item::findOne(2);
         $model->insertBefore(4);
         $this->assertEquals(3, Item::findOne($model->id)->pos);
+        $this->assertEquals(TreeBehavior::toBase255([1, 3]), Item::findOne($model->id)->bpath);
     }
 
     public function testInsertAfterFirst() {
         $model = Item::findOne(4);
         $model->insertAfter(2);
         $this->assertEquals(3, Item::findOne($model->id)->pos);
+        $this->assertEquals(TreeBehavior::toBase255([1, 3]), Item::findOne($model->id)->bpath);
     }
 
     public function testInsertAfterLast() {
         $model = Item::findOne(2);
         $model->insertAfter(4);
-        $this->assertEquals(5, Item::findOne($model->id)->pos);
+        $this->assertEquals(4, Item::findOne($model->id)->pos);
+        $this->assertEquals(TreeBehavior::toBase255([1, 4]), Item::findOne($model->id)->bpath);
+    }
+
+    public function testInsert() {
+        $model = new Item();
+        $model->name = 'test-3-2';
+        $model->pid = 4;
+        $model->save();
+
+        $this->assertEquals(6, Item::findOne($model->id)->pos);
+        $this->assertEquals(TreeBehavior::toBase255([1, 4, 6]), Item::findOne($model->id)->bpath);
+    }
+
+    public function testParent() {
+        $this->assertEquals(TreeBehavior::toBase255([1, 4, 5]), Item::findOne(5)->bpath);
+        $model = Item::findOne(4);
+        $model->insertBefore(2);
+        $this->assertEquals(2, Item::findOne($model->id)->pos);
+        $this->assertEquals(TreeBehavior::toBase255([1, 2, 5]), Item::findOne(5)->bpath);
     }
 }

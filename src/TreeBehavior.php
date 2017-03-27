@@ -142,15 +142,15 @@ class TreeBehavior extends Behavior {
         if($this->pidAttribute && $target->{$this->pidAttribute} != $this->owner->{$this->pidAttribute}) $this->moveToInner($target->{$this->pidAttribute});
 
         $pos = $target->{$this->posAttribute};
-        if($this->owner->findOne([$this->posAttribute=>$pos+1])) {
+        if($this->owner->findOne([$this->posAttribute=>$pos+1, $this->pidAttribute=>$target->{$this->pidAttribute}])) {
             $currentPos = $this->owner->{$this->posAttribute};
             $this->owner->{$this->posAttribute} = null;
             $this->owner->save(false, [$this->posAttribute]);
             if($pos<$currentPos) {
-                $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`+1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<:pos2 ORDER BY `{$this->posAttribute}` DESC", ['pos1'=>$pos, 'pos2'=>$currentPos])->execute();
+                $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`+1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<:pos2 AND `{$this->pidAttribute}`=:pid ORDER BY `{$this->posAttribute}` DESC", ['pos1'=>$pos, 'pos2'=>$currentPos, ':pid'=>$target->{$this->pidAttribute}])->execute();
                 $this->owner->{$this->posAttribute} = $pos+1;
             } else {
-                $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`-1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<=:pos2 ORDER BY `{$this->posAttribute}` ASC", ['pos1'=>$currentPos, 'pos2'=>$pos])->execute();
+                $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`-1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<=:pos2 AND `{$this->pidAttribute}`=:pid ORDER BY `{$this->posAttribute}` ASC", ['pos1'=>$currentPos, 'pos2'=>$pos, ':pid'=>$target->{$this->pidAttribute}])->execute();
                 $this->owner->{$this->posAttribute} = $pos;
             }
         } else {
@@ -205,15 +205,15 @@ WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%');");
         if($this->pidAttribute && $target->{$this->pidAttribute} != $this->owner->{$this->pidAttribute}) $this->moveToInner($target->{$this->pidAttribute});
 
         $pos = $target->{$this->posAttribute};
-        if($this->owner->findOne([$this->posAttribute=>$pos-1]) || $pos<=1) {
+        if($this->owner->findOne([$this->posAttribute=>$pos-1, $this->pidAttribute=>$target->{$this->pidAttribute}]) || $pos<=1) {
             $currentPos = $this->owner->{$this->posAttribute};
             $this->owner->{$this->posAttribute} = null;
             $this->owner->save(false, [$this->posAttribute]);
             if($pos<$currentPos) {
-                $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`+1 WHERE `{$this->posAttribute}`>=:pos1 AND `{$this->posAttribute}`<:pos2 ORDER BY `{$this->posAttribute}` DESC", ['pos1'=>$pos, 'pos2'=>$currentPos])->execute();
+                $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`+1 WHERE `{$this->posAttribute}`>=:pos1 AND `{$this->posAttribute}`<:pos2 AND `{$this->pidAttribute}`=:pid ORDER BY `{$this->posAttribute}` DESC", ['pos1'=>$pos, 'pos2'=>$currentPos, ':pid'=>$target->{$this->pidAttribute}])->execute();
                 $this->owner->{$this->posAttribute} = $pos;
             } else {
-                $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`-1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<:pos2 ORDER BY `{$this->posAttribute}` ASC", ['pos1'=>$currentPos, 'pos2'=>$pos])->execute();
+                $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`-1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<:pos2 AND `{$this->pidAttribute}`=:pid ORDER BY `{$this->posAttribute}` ASC", ['pos1'=>$currentPos, 'pos2'=>$pos, ':pid'=>$target->{$this->pidAttribute}])->execute();
                 $this->owner->{$this->posAttribute} = $pos-1;
             }
         } else {
@@ -334,12 +334,12 @@ WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%');");
     public static function toBase255($numbers)
     {
         $c0 = chr(0);
-        $toLen = 255;
+        $toLen = 256;
         $res = array();
 
         foreach($numbers as $base10) {
             $base255='';
-            if ($base10<=$toLen) {
+            if ($base10<$toLen) {
                 $base255 = str_pad(chr($base10), self::BPATH_LEN, $c0, STR_PAD_LEFT);
             } else {
                 while($base10 != '0')

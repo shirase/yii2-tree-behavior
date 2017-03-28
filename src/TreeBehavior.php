@@ -3,6 +3,7 @@ namespace shirase\tree;
 
 use yii\base\Behavior;
 use yii\db\ActiveRecord;
+use yii\db\Exception;
 use yii\web\HttpException;
 use yii\db\Expression;
 
@@ -183,9 +184,10 @@ SET
         LENGTH(:pbpath)+".self::BPATH_LEN."+1
     )
 )
-WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%');");
+WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%') AND `{$this->bPathAttribute}`!=:pbpath;");
             $command->bindValue(':pbpath', $target->parent->bpath, \PDO::PARAM_LOB);
             $command->execute();
+            $command->pdoStatement->closeCursor();
         }
 
         $transaction->commit();
@@ -246,9 +248,10 @@ SET
         LENGTH(:pbpath)+".self::BPATH_LEN."+1
     )
 )
-WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%');");
+WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%') AND `{$this->bPathAttribute}`!=:pbpath;");
             $command->bindValue(':pbpath', $target->parent->bpath, \PDO::PARAM_LOB);
             $command->execute();
+            $command->pdoStatement->closeCursor();
         }
 
         $transaction->commit();

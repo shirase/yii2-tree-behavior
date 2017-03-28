@@ -104,9 +104,18 @@ class TreeBehavior extends Behavior {
             throw new HttpException(500);
         }
 
-        $transaction = $this->owner->getDb()->beginTransaction();
+        $db = $this->owner->getDb();
+
+        if ($db->getTransaction()) {
+            $transaction = null;
+        } else {
+            $transaction = $this->owner->getDb()->beginTransaction();
+        }
+
         $this->moveToInner($to);
-        $transaction->commit();
+
+        if ($transaction)
+            $transaction->commit();
     }
 
     private function moveToInner($to) {
@@ -136,7 +145,11 @@ class TreeBehavior extends Behavior {
 
         $db = $this->owner->getDb();
 
-        $transaction = $this->owner->getDb()->beginTransaction();
+        if ($db->getTransaction()) {
+            $transaction = null;
+        } else {
+            $transaction = $this->owner->getDb()->beginTransaction();
+        }
 
         $target = $this->owner->findOne($id);
 
@@ -190,7 +203,8 @@ WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%') AND `{$this->bPathAttr
             $command->pdoStatement->closeCursor();
         }
 
-        $transaction->commit();
+        if ($transaction)
+            $transaction->commit();
     }
 
     public function insertBefore($id) {
@@ -200,7 +214,11 @@ WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%') AND `{$this->bPathAttr
 
         $db = $this->owner->getDb();
 
-        $transaction = $this->owner->getDb()->beginTransaction();
+        if ($db->getTransaction()) {
+            $transaction = null;
+        } else {
+            $transaction = $this->owner->getDb()->beginTransaction();
+        }
 
         $target = $this->owner->findOne($id);
 
@@ -254,7 +272,8 @@ WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%') AND `{$this->bPathAttr
             $command->pdoStatement->closeCursor();
         }
 
-        $transaction->commit();
+        if ($transaction)
+            $transaction->commit();
     }
 
     public function deleteRecursive() {

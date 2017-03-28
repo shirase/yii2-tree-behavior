@@ -146,19 +146,19 @@ class TreeBehavior extends Behavior {
         if($this->owner->findOne([$this->posAttribute=>$pos+1, $this->pidAttribute=>$target->{$this->pidAttribute}])) {
             $currentPos = $this->owner->{$this->posAttribute};
             $this->owner->{$this->posAttribute} = null;
-            $this->owner->save(false, [$this->posAttribute]);
+            $db->createCommand()->update($this->owner->tableName(), [$this->posAttribute=>null], [$this->owner->primaryKey()[0]=>$this->owner->primaryKey])->execute();
             if($pos<$currentPos) {
-                $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`+1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<:pos2 AND `{$this->pidAttribute}`=:pid ORDER BY `{$this->posAttribute}` DESC", ['pos1'=>$pos, 'pos2'=>$currentPos, ':pid'=>$target->{$this->pidAttribute}])->execute();
+                $db->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`+1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<:pos2 AND `{$this->pidAttribute}`=:pid ORDER BY `{$this->posAttribute}` DESC", ['pos1'=>$pos, 'pos2'=>$currentPos, ':pid'=>$target->{$this->pidAttribute}])->execute();
                 $this->owner->{$this->posAttribute} = $pos+1;
             } else {
-                $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`-1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<=:pos2 AND `{$this->pidAttribute}`=:pid ORDER BY `{$this->posAttribute}` ASC", ['pos1'=>$currentPos, 'pos2'=>$pos, ':pid'=>$target->{$this->pidAttribute}])->execute();
+                $db->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`-1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<=:pos2 AND `{$this->pidAttribute}`=:pid ORDER BY `{$this->posAttribute}` ASC", ['pos1'=>$currentPos, 'pos2'=>$pos, ':pid'=>$target->{$this->pidAttribute}])->execute();
                 $this->owner->{$this->posAttribute} = $pos;
             }
         } else {
             $this->owner->{$this->posAttribute} = $pos+1;
         }
 
-        $this->owner->save(false, array($this->posAttribute));
+        $db->createCommand()->update($this->owner->tableName(), [$this->posAttribute=>$this->owner->{$this->posAttribute}], [$this->owner->primaryKey()[0]=>$this->owner->primaryKey])->execute();
 
         if($this->bPathAttribute) {
             $command = $this->owner->getDb()->createCommand("
@@ -210,19 +210,19 @@ WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%') AND `{$this->bPathAttr
         if($this->owner->findOne([$this->posAttribute=>$pos-1, $this->pidAttribute=>$target->{$this->pidAttribute}]) || $pos<=1) {
             $currentPos = $this->owner->{$this->posAttribute};
             $this->owner->{$this->posAttribute} = null;
-            $this->owner->save(false, [$this->posAttribute]);
+            $db->createCommand()->update($this->owner->tableName(), [$this->posAttribute=>null], [$this->owner->primaryKey()[0]=>$this->owner->primaryKey])->execute();
             if($pos<$currentPos) {
-                $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`+1 WHERE `{$this->posAttribute}`>=:pos1 AND `{$this->posAttribute}`<:pos2 AND `{$this->pidAttribute}`=:pid ORDER BY `{$this->posAttribute}` DESC", ['pos1'=>$pos, 'pos2'=>$currentPos, ':pid'=>$target->{$this->pidAttribute}])->execute();
+                $db->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`+1 WHERE `{$this->posAttribute}`>=:pos1 AND `{$this->posAttribute}`<:pos2 AND `{$this->pidAttribute}`=:pid ORDER BY `{$this->posAttribute}` DESC", ['pos1'=>$pos, 'pos2'=>$currentPos, ':pid'=>$target->{$this->pidAttribute}])->execute();
                 $this->owner->{$this->posAttribute} = $pos;
             } else {
-                $this->owner->getDb()->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`-1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<:pos2 AND `{$this->pidAttribute}`=:pid ORDER BY `{$this->posAttribute}` ASC", ['pos1'=>$currentPos, 'pos2'=>$pos, ':pid'=>$target->{$this->pidAttribute}])->execute();
+                $db->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`-1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<:pos2 AND `{$this->pidAttribute}`=:pid ORDER BY `{$this->posAttribute}` ASC", ['pos1'=>$currentPos, 'pos2'=>$pos, ':pid'=>$target->{$this->pidAttribute}])->execute();
                 $this->owner->{$this->posAttribute} = $pos-1;
             }
         } else {
             $this->owner->{$this->posAttribute} = $pos-1;
         }
 
-        $this->owner->save(false, array($this->posAttribute));
+        $db->createCommand()->update($this->owner->tableName(), [$this->posAttribute=>$this->owner->{$this->posAttribute}], [$this->owner->primaryKey()[0]=>$this->owner->primaryKey])->execute();
 
         if($this->bPathAttribute) {
             $command = $this->owner->getDb()->createCommand("

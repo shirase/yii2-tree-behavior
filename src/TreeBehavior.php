@@ -156,7 +156,11 @@ class TreeBehavior extends Behavior {
         if($this->pidAttribute && $target->{$this->pidAttribute} != $this->owner->{$this->pidAttribute}) $this->moveToInner($target->{$this->pidAttribute});
 
         $pos = $target->{$this->posAttribute};
-        if($this->owner->findOne([$this->posAttribute=>$pos+1, $this->pidAttribute=>$target->{$this->pidAttribute}])) {
+        $condition = [$this->posAttribute=>$pos+1];
+        if ($this->pidAttribute) {
+            $condition[$this->pidAttribute] = $target->{$this->pidAttribute};
+        }
+        if($this->owner->findOne($condition)) {
             $currentPos = $this->owner->{$this->posAttribute};
             $this->owner->{$this->posAttribute} = null;
             $db->createCommand()->update($this->owner->tableName(), [$this->posAttribute=>null], [$this->owner->primaryKey()[0]=>$this->owner->primaryKey])->execute();
@@ -225,7 +229,11 @@ WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%') AND `{$this->bPathAttr
         if($this->pidAttribute && $target->{$this->pidAttribute} != $this->owner->{$this->pidAttribute}) $this->moveToInner($target->{$this->pidAttribute});
 
         $pos = $target->{$this->posAttribute};
-        if($this->owner->findOne([$this->posAttribute=>$pos-1, $this->pidAttribute=>$target->{$this->pidAttribute}]) || $pos<=1) {
+        $condition = [$this->posAttribute=>$pos-1];
+        if ($this->pidAttribute) {
+            $condition[$this->pidAttribute] = $target->{$this->pidAttribute};
+        }
+        if($this->owner->findOne($condition) || $pos<=1) {
             $currentPos = $this->owner->{$this->posAttribute};
             $this->owner->{$this->posAttribute} = null;
             $db->createCommand()->update($this->owner->tableName(), [$this->posAttribute=>null], [$this->owner->primaryKey()[0]=>$this->owner->primaryKey])->execute();

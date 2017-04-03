@@ -125,12 +125,19 @@ class TreeBehavior extends Behavior {
         $this->owner->{$this->posAttribute} = $this->maxPos()+1;
         $this->owner->{$this->pidAttribute} = $to;
 
+        $db = $this->owner->getDb();
+
         if($this->bPathAttribute) {
-            $model = $this->owner;
             $bpathOld = $this->owner->{$this->bPathAttribute};
             $this->owner->{$this->bPathAttribute} = $this->buildBPath();
-            $this->owner->getDb()->createCommand('UPDATE '.$model::tableName().' SET `'.$this->bPathAttribute.'`=CONCAT(:bpath, RIGHT(`'.$this->bPathAttribute.'`, LENGTH(`'.$this->bPathAttribute.'`)-LENGTH(:bpathOld))) WHERE `'.$this->bPathAttribute.'` LIKE :bpathOld', [':bpath'=>$this->owner->{$this->bPathAttribute}, ':bpathOld'=>$bpathOld.'%'])->execute();
-            $this->owner->save(false, array($this->pidAttribute, $this->posAttribute, $this->bPathAttribute));
+
+            $command = $db->createCommand('UPDATE '.$this->owner->tableName().' SET `'.$this->bPathAttribute.'`=CONCAT(:bpath, RIGHT(`'.$this->bPathAttribute.'`, LENGTH(`'.$this->bPathAttribute.'`)-LENGTH(:bpathOld))) WHERE `'.$this->bPathAttribute.'` LIKE CONCAT(:bpathOld, "%")');
+            $command->bindValue(':bpathOld', $bpathOld, \PDO::PARAM_LOB);
+            $command->bindValue(':bpath', $this->owner->{$this->bPathAttribute}, \PDO::PARAM_LOB);
+            $command->execute();
+            $command->pdoStatement->closeCursor();
+
+            $db->createCommand()->update($this->owner->tableName(), [$this->pidAttribute=>$this->owner->{$this->pidAttribute}, $this->posAttribute=>$this->owner->{$this->posAttribute}], [$this->owner->primaryKey()[0]=>$this->owner->primaryKey])->execute();
         } else {
             $this->owner->save(false, array($this->pidAttribute, $this->posAttribute));
         }

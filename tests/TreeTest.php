@@ -152,6 +152,14 @@ CREATE TABLE IF NOT EXISTS `items` (
         $this->assertEquals(TreeBehavior::toBase255([1, 10005, 10005]), Item::findOne(5)->bpath);
     }
 
+    public function testPath() {
+        $model = Item::findOne(5);
+        $path = $model->getPath();
+        $this->assertEquals(1, $path[0]);
+        $this->assertEquals(4, $path[1]);
+        $this->assertEquals(5, $path[2]);
+    }
+
     public function testMove() {
         $model = Item::findOne(4);
         $model->moveTo(3);

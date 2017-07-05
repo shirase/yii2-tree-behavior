@@ -326,7 +326,12 @@ WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%') AND `{$this->bPathAttr
             $bpath = $this->owner->{$this->bPathAttribute};
             $parts = str_split($bpath, self::BPATH_LEN);
             foreach($parts as $part) {
-                $pos[] = ord(ltrim($part, chr(0)));
+                $p = 0;
+                for ($i=self::BPATH_LEN-1;$i>=0;$i--) {
+                    $s = ltrim($part[self::BPATH_LEN-$i-1], chr(0));
+                    $p += ord($s) * (pow(256, $i));
+                }
+                $pos[] = $p;
             }
             return (array)$model::getDb()->createCommand('SELECT '.$model::primaryKey()[0].' FROM '.$model::tableName().' WHERE pos IN("'.implode('","', $pos).'") ORDER BY FIELD(`'.$this->posAttribute.'`, "'.implode('","', $pos).'")')->queryColumn();
         } else {

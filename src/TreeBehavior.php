@@ -382,7 +382,7 @@ WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%') AND `{$this->bPathAttr
                 while($base10 != '0')
                 {
                     $base255 = chr($base10 % $toLen).$base255;
-                    $base10 = bcdiv($base10,$toLen,0);
+                    $base10 = round($base10/$toLen);
                 }
 
                 if(strlen($base255)>self::BPATH_LEN) {

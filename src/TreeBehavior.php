@@ -381,7 +381,7 @@ WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%') AND `{$this->bPathAttr
             } else {
                 while($base10 != '0')
                 {
-                    $base255 = chr(bcmod($base10,$toLen)).$base255;
+                    $base255 = chr($base10 % $toLen).$base255;
                     $base10 = bcdiv($base10,$toLen,0);
                 }
 

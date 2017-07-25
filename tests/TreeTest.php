@@ -117,11 +117,11 @@ CREATE TABLE IF NOT EXISTS `items` (
     public function testInsertAfterLast() {
         $model = Item::findOne(2);
         $model->insertAfter(4);
-        $this->assertEquals(10005, Item::findOne($model->id)->pos);
-        $this->assertEquals(10004, Item::findOne(4)->pos);
-        $this->assertEquals(TreeBehavior::toBase255([1, 10005]), Item::findOne($model->id)->bpath);
-        $this->assertEquals(TreeBehavior::toBase255([1, 10004]), Item::findOne(4)->bpath);
-        $this->assertEquals(TreeBehavior::toBase255([1, 10004, 10005]), Item::findOne(5)->bpath);
+        $this->assertEquals(10004, Item::findOne($model->id)->pos);
+        $this->assertEquals(10003, Item::findOne(4)->pos);
+        $this->assertEquals(TreeBehavior::toBase255([1, 10004]), Item::findOne($model->id)->bpath);
+        $this->assertEquals(TreeBehavior::toBase255([1, 10003]), Item::findOne(4)->bpath);
+        $this->assertEquals(TreeBehavior::toBase255([1, 10003, 10005]), Item::findOne(5)->bpath);
     }
 
     public function testInsert() {
@@ -147,9 +147,9 @@ CREATE TABLE IF NOT EXISTS `items` (
 
         $model = Item::findOne(4);
         $model->insertAfter(3);
-        $this->assertEquals(10005, Item::findOne($model->id)->pos);
-        $this->assertEquals(TreeBehavior::toBase255([1, 10005]), Item::findOne($model->id)->bpath);
-        $this->assertEquals(TreeBehavior::toBase255([1, 10005, 10005]), Item::findOne(5)->bpath);
+        $this->assertEquals(10004, Item::findOne($model->id)->pos);
+        $this->assertEquals(TreeBehavior::toBase255([1, 10004]), Item::findOne($model->id)->bpath);
+        $this->assertEquals(TreeBehavior::toBase255([1, 10004, 10005]), Item::findOne(5)->bpath);
     }
 
     public function testPath() {

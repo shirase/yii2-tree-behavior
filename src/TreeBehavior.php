@@ -164,9 +164,9 @@ class TreeBehavior extends Behavior {
 
         $pos = $target->{$this->posAttribute};
         $condition = [$this->posAttribute=>$pos+1];
-        if ($this->pidAttribute) {
+        /*if ($this->pidAttribute) {
             $condition[$this->pidAttribute] = $target->{$this->pidAttribute};
-        }
+        }*/
         if($this->owner->findOne($condition)) {
             $currentPos = $this->owner->{$this->posAttribute};
             $this->owner->{$this->posAttribute} = null;
@@ -237,9 +237,9 @@ WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%') AND `{$this->bPathAttr
 
         $pos = $target->{$this->posAttribute};
         $condition = [$this->posAttribute=>$pos-1];
-        if ($this->pidAttribute) {
+        /*if ($this->pidAttribute) {
             $condition[$this->pidAttribute] = $target->{$this->pidAttribute};
-        }
+        }*/
         if($this->owner->findOne($condition) || $pos<=1) {
             $currentPos = $this->owner->{$this->posAttribute};
             $this->owner->{$this->posAttribute} = null;

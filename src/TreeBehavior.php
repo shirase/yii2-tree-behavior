@@ -186,22 +186,14 @@ class TreeBehavior extends Behavior {
 
         if($this->bPathAttribute) {
             $command = $this->owner->getDb()->createCommand("
-DROP TABLE IF EXISTS _zcupfro;
-CREATE TEMPORARY TABLE _zcupfro AS (SELECT {$this->pidAttribute}, {$this->bPathAttribute}, {$this->posAttribute} FROM {$this->owner->tableName()});
 UPDATE {$this->owner->tableName()}
 SET
 `{$this->bPathAttribute}`=CONCAT(
     :pbpath,
-    (SELECT
-      LPAD(
-        CHAR(_zcupfro.{$db->quoteColumnName($this->posAttribute)}),
+    LPAD(
+        CHAR({$db->quoteColumnName($this->posAttribute)}),
         ".self::BPATH_LEN.",
         CHAR(0)
-      )
-      FROM _zcupfro
-      WHERE
-        _zcupfro.`{$this->bPathAttribute}`=SUBSTRING({$this->owner->tableName()}.`{$this->bPathAttribute}`, 1, LENGTH(:pbpath)+".self::BPATH_LEN.")
-      LIMIT 1
     ),
     SUBSTRING(
         `{$this->bPathAttribute}`,
@@ -259,22 +251,14 @@ WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%') AND `{$this->bPathAttr
 
         if($this->bPathAttribute) {
             $command = $this->owner->getDb()->createCommand("
-DROP TABLE IF EXISTS _zcupfro;
-CREATE TEMPORARY TABLE _zcupfro AS (SELECT {$this->pidAttribute}, {$this->bPathAttribute}, {$this->posAttribute} FROM {$this->owner->tableName()});
 UPDATE {$this->owner->tableName()}
 SET
 `{$this->bPathAttribute}`=CONCAT(
     :pbpath,
-    (SELECT
-      LPAD(
-        CHAR(_zcupfro.{$db->quoteColumnName($this->posAttribute)}),
+    LPAD(
+        CHAR({$db->quoteColumnName($this->posAttribute)}),
         ".self::BPATH_LEN.",
         CHAR(0)
-      )
-      FROM _zcupfro
-      WHERE
-        _zcupfro.`{$this->bPathAttribute}`=SUBSTRING({$this->owner->tableName()}.`{$this->bPathAttribute}`, 1, LENGTH(:pbpath)+".self::BPATH_LEN.")
-      LIMIT 1
     ),
     SUBSTRING(
         `{$this->bPathAttribute}`,

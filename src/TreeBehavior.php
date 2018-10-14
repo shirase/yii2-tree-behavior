@@ -164,13 +164,10 @@ class TreeBehavior extends Behavior {
 
         $pos = $target->{$this->posAttribute};
         $condition = [$this->posAttribute=>$pos+1];
-        /*if ($this->pidAttribute) {
-            $condition[$this->pidAttribute] = $target->{$this->pidAttribute};
-        }*/
         if($this->owner->findOne($condition)) {
             $currentPos = $this->owner->{$this->posAttribute};
             $this->owner->{$this->posAttribute} = null;
-            $db->createCommand()->update($this->owner->tableName(), [$this->posAttribute=>null], [$this->owner->primaryKey()[0]=>$this->owner->primaryKey])->execute();
+            $this->owner->updateAttributes([$this->posAttribute]);
             if($pos<$currentPos) {
                 $db->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`+1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<:pos2 ORDER BY `{$this->posAttribute}` DESC", ['pos1'=>$pos, 'pos2'=>$currentPos])->execute();
                 $this->owner->{$this->posAttribute} = $pos+1;
@@ -178,32 +175,47 @@ class TreeBehavior extends Behavior {
                 $db->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`-1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<=:pos2 ORDER BY `{$this->posAttribute}` ASC", [':pos1' => $currentPos, ':pos2' => $pos])->execute();
                 $this->owner->{$this->posAttribute} = $pos;
             }
+
+            $this->owner->updateAttributes([$this->posAttribute]);
+
+            if($this->bPathAttribute) {
+                $this->reBuildBPath();
+            }
         } else {
             $this->owner->{$this->posAttribute} = $pos+1;
-        }
-
-        $db->createCommand()->update($this->owner->tableName(), [$this->posAttribute=>$this->owner->{$this->posAttribute}], [$this->owner->primaryKey()[0]=>$this->owner->primaryKey])->execute();
-
-        if($this->bPathAttribute) {
-            $command = $this->owner->getDb()->createCommand("
+            $this->owner->updateAttributes([$this->posAttribute]);
+            if($this->bPathAttribute) {
+                $command = $this->owner->getDb()->createCommand("
 UPDATE {$this->owner->tableName()}
 SET
-`{$this->bPathAttribute}`=CONCAT(
-    :pbpath,
+`{$this->bPathAttribute}`=REPLACE(
+    `{$this->bPathAttribute}`,
     LPAD(
-        CHAR({$db->quoteColumnName($this->posAttribute)}),
+        CHAR(:pos1),
         ".self::BPATH_LEN.",
         CHAR(0)
     ),
-    SUBSTRING(
-        `{$this->bPathAttribute}`,
-        LENGTH(:pbpath)+".self::BPATH_LEN."+1
+    LPAD(
+        CHAR(:pos2),
+        ".self::BPATH_LEN.",
+        CHAR(0)
     )
 )
-WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%') AND `{$this->bPathAttribute}`!=:pbpath;");
-            $command->bindValue(':pbpath', $target->parent->bpath, \PDO::PARAM_LOB);
-            $command->execute();
-            $command->pdoStatement->closeCursor();
+WHERE `{$this->bPathAttribute}` LIKE 
+    CONCAT(
+        '%', 
+        LPAD(
+            CHAR(:pos1),
+            ".self::BPATH_LEN.",
+            CHAR(0)
+        ), 
+        '%'
+    );");
+                $command->bindValue(':pos1', $pos, \PDO::PARAM_INT);
+                $command->bindValue(':pos2', $pos+1, \PDO::PARAM_INT);
+                $command->execute();
+                $command->pdoStatement->closeCursor();
+            }
         }
 
         if ($transaction)
@@ -229,13 +241,10 @@ WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%') AND `{$this->bPathAttr
 
         $pos = $target->{$this->posAttribute};
         $condition = [$this->posAttribute=>$pos-1];
-        /*if ($this->pidAttribute) {
-            $condition[$this->pidAttribute] = $target->{$this->pidAttribute};
-        }*/
         if($this->owner->findOne($condition) || $pos<=1) {
             $currentPos = $this->owner->{$this->posAttribute};
             $this->owner->{$this->posAttribute} = null;
-            $db->createCommand()->update($this->owner->tableName(), [$this->posAttribute=>null], [$this->owner->primaryKey()[0]=>$this->owner->primaryKey])->execute();
+            $this->owner->updateAttributes([$this->posAttribute]);
             if($pos<$currentPos) {
                 $db->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`+1 WHERE `{$this->posAttribute}`>=:pos1 AND `{$this->posAttribute}`<:pos2 ORDER BY `{$this->posAttribute}` DESC", [':pos1'=>$pos, ':pos2'=>$currentPos])->execute();
                 $this->owner->{$this->posAttribute} = $pos;
@@ -243,32 +252,47 @@ WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%') AND `{$this->bPathAttr
                 $db->createCommand("UPDATE {$this->owner->tableName()} SET `{$this->posAttribute}`=`{$this->posAttribute}`-1 WHERE `{$this->posAttribute}`>:pos1 AND `{$this->posAttribute}`<:pos2 ORDER BY `{$this->posAttribute}` ASC", [':pos1'=>$currentPos, ':pos2'=>$pos])->execute();
                 $this->owner->{$this->posAttribute} = $pos-1;
             }
+
+            $this->owner->updateAttributes([$this->posAttribute]);
+
+            if($this->bPathAttribute) {
+                $this->reBuildBPath();
+            }
         } else {
             $this->owner->{$this->posAttribute} = $pos-1;
-        }
-
-        $db->createCommand()->update($this->owner->tableName(), [$this->posAttribute=>$this->owner->{$this->posAttribute}], [$this->owner->primaryKey()[0]=>$this->owner->primaryKey])->execute();
-
-        if($this->bPathAttribute) {
-            $command = $this->owner->getDb()->createCommand("
+            $this->owner->updateAttributes([$this->posAttribute]);
+            if($this->bPathAttribute) {
+                $command = $this->owner->getDb()->createCommand("
 UPDATE {$this->owner->tableName()}
 SET
-`{$this->bPathAttribute}`=CONCAT(
-    :pbpath,
+`{$this->bPathAttribute}`=REPLACE(
+    `{$this->bPathAttribute}`,
     LPAD(
-        CHAR({$db->quoteColumnName($this->posAttribute)}),
+        CHAR(:pos1),
         ".self::BPATH_LEN.",
         CHAR(0)
     ),
-    SUBSTRING(
-        `{$this->bPathAttribute}`,
-        LENGTH(:pbpath)+".self::BPATH_LEN."+1
+    LPAD(
+        CHAR(:pos2),
+        ".self::BPATH_LEN.",
+        CHAR(0)
     )
 )
-WHERE `{$this->bPathAttribute}` LIKE CONCAT(:pbpath, '%') AND `{$this->bPathAttribute}`!=:pbpath;");
-            $command->bindValue(':pbpath', $target->parent->bpath, \PDO::PARAM_LOB);
-            $command->execute();
-            $command->pdoStatement->closeCursor();
+WHERE `{$this->bPathAttribute}` LIKE 
+    CONCAT(
+        '%', 
+        LPAD(
+            CHAR(:pos1),
+            ".self::BPATH_LEN.",
+            CHAR(0)
+        ), 
+        '%'
+    );");
+                $command->bindValue(':pos1', $pos, \PDO::PARAM_INT);
+                $command->bindValue(':pos2', $pos-1, \PDO::PARAM_INT);
+                $command->execute();
+                $command->pdoStatement->closeCursor();
+            }
         }
 
         if ($transaction)

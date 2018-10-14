@@ -23,7 +23,7 @@ class TreeTest extends TestCase
 CREATE TABLE IF NOT EXISTS `items` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `pid` int(11) NOT NULL,
-  `pos` int(11) NOT NULL,
+  `pos` int(11),
   `bpath` blob,
   `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   PRIMARY KEY (`id`)

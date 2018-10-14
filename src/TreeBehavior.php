@@ -182,6 +182,7 @@ class TreeBehavior extends Behavior {
                 $this->reBuildBPath();
             }
         } else {
+            $currentPos = $this->owner->{$this->posAttribute};
             $this->owner->{$this->posAttribute} = $pos+1;
             $this->owner->updateAttributes([$this->posAttribute]);
             if($this->bPathAttribute) {
@@ -211,7 +212,7 @@ WHERE `{$this->bPathAttribute}` LIKE
         ), 
         '%'
     );");
-                $command->bindValue(':pos1', $pos, \PDO::PARAM_INT);
+                $command->bindValue(':pos1', $currentPos, \PDO::PARAM_INT);
                 $command->bindValue(':pos2', $pos+1, \PDO::PARAM_INT);
                 $command->execute();
                 $command->pdoStatement->closeCursor();
@@ -259,6 +260,7 @@ WHERE `{$this->bPathAttribute}` LIKE
                 $this->reBuildBPath();
             }
         } else {
+            $currentPos = $this->owner->{$this->posAttribute};
             $this->owner->{$this->posAttribute} = $pos-1;
             $this->owner->updateAttributes([$this->posAttribute]);
             if($this->bPathAttribute) {
@@ -288,7 +290,7 @@ WHERE `{$this->bPathAttribute}` LIKE
         ), 
         '%'
     );");
-                $command->bindValue(':pos1', $pos, \PDO::PARAM_INT);
+                $command->bindValue(':pos1', $currentPos, \PDO::PARAM_INT);
                 $command->bindValue(':pos2', $pos-1, \PDO::PARAM_INT);
                 $command->execute();
                 $command->pdoStatement->closeCursor();
